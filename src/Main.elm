@@ -1,8 +1,9 @@
 module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
-import Html exposing (Html, div, h1, img, text)
-import Html.Attributes exposing (src)
+import Html exposing (Html, div, text)
+import Markdown exposing (toHtml)
+import Port exposing (MarkDown, readMarkDown)
 
 
 
@@ -10,25 +11,7 @@ import Html.Attributes exposing (src)
 
 
 type alias Model =
-    {}
-
-
-init : ( Model, Cmd Msg )
-init =
-    ( {}, Cmd.none )
-
-
-
----- UPDATE ----
-
-
-type Msg
-    = NoOp
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    ( model, Cmd.none )
+    String
 
 
 
@@ -38,20 +21,47 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ img [ src "./assets/logo.svg" ] []
-        , h1 [] [ text "Your Elm App is working!" ]
-        ]
+        [ toHtml [] model ]
+
+
+
+---- UPDATE ----
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    readMarkDown ReceivedDataFromJS
+
+
+type Msg
+    = ReceivedDataFromJS Model
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        ReceivedDataFromJS data ->
+            ( data, Cmd.none )
+
+
+
+---- INIT ----
+
+
+init : ( Model, Cmd Msg )
+init =
+    ( "", Cmd.none )
 
 
 
 ---- PROGRAM ----
 
 
-main : Program () Model Msg
+main : Program {} Model Msg
 main =
     Browser.element
-        { view = view
-        , init = \_ -> init
+        { init = \_ -> init
+        , view = view
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }

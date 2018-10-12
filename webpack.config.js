@@ -24,6 +24,10 @@ module.exports = {
                 ]
             },
             {
+                test: /\.md$/,
+                use: 'raw-loader'
+            },
+            {
                 test: /\.elm$/,
                 exclude: [/elm-stuff/, /node_modules/],
                 use: [
