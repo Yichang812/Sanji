@@ -1,7 +1,11 @@
 module Main exposing (Model, Msg(..), init, main, update, view)
 
+-- import CodeMirror exposing (..)
+
 import Browser
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, h2, text, textarea)
+import Html.Attributes exposing (id, property)
+import Json.Encode exposing (string)
 import Markdown exposing (toHtml)
 import Port exposing (MarkDown, readMarkDown)
 
@@ -11,7 +15,9 @@ import Port exposing (MarkDown, readMarkDown)
 
 
 type alias Model =
-    String
+    { code : String
+    , docs : String
+    }
 
 
 
@@ -21,7 +27,17 @@ type alias Model =
 view : Model -> Html Msg
 view model =
     div []
-        [ toHtml [] model ]
+        [ toHtml [] model.docs
+        , div []
+            [ h2 [] [ text "Playground" ]
+            , textarea [ id "playground" ] [ text model.code ]
+            ]
+        ]
+
+
+{-| TODO: preview
+<https://github.com/elm/html/issues/172#issuecomment-416975608>
+-}
 
 
 
@@ -34,14 +50,14 @@ subscriptions _ =
 
 
 type Msg
-    = ReceivedDataFromJS Model
+    = ReceivedDataFromJS String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ReceivedDataFromJS data ->
-            ( data, Cmd.none )
+            ( { model | docs = data }, Cmd.none )
 
 
 
@@ -50,7 +66,13 @@ update msg model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( "", Cmd.none )
+    let
+        model =
+            { code = "<div>test</div>"
+            , docs = ""
+            }
+    in
+    ( model, Cmd.none )
 
 
 
