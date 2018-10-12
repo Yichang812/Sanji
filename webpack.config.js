@@ -53,7 +53,7 @@ module.exports = {
         }),
         new HtmlWebpackPlugin({
             filename: 'index.html',
-            template: 'public/index.html'
+            template: 'index.html'
         }),
         new CopyWebpackPlugin([
             {
