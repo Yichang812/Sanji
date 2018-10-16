@@ -35,7 +35,9 @@ module.exports = {
                     {
                         loader: 'elm-webpack-loader',
                         options: {
-                            cwd: __dirname
+                            cwd: __dirname,
+                            debug:
+                                process.env.ELM_DEBUGGER === 'false' ? false : true
                         }
                     }
                 ]
@@ -66,5 +68,8 @@ module.exports = {
         port: 9000,
         contentBase: path.join(__dirname, 'dist'),
         stats: { colors: true }
+    },
+    node: {
+        fs: "empty"
     }
 };

@@ -3,20 +3,29 @@ module Main exposing (Model, Msg(..), init, main, update, view)
 -- import CodeMirror exposing (..)
 
 import Browser
-import Html exposing (Html, div, h2, text, textarea)
-import Html.Attributes exposing (id, property)
+import Html exposing (Attribute, Html, a, div, h2, li, text, textarea, ul)
+import Html.Attributes exposing (attribute, id)
+import Html.Events exposing (on, onClick, onInput, stopPropagationOn, targetValue)
+import Json.Decode as Json
 import Json.Encode exposing (string)
 import Markdown exposing (toHtml)
-import Port exposing (MarkDown, readMarkDown)
+import Port exposing (getFileContent, readFile, readFileList, setPreview)
 
 
 
 ---- MODEL ----
 
 
-type alias Model =
+type AppState
+    = Loading
+    | Loaded LoadedModel
+    | LoadingError Json.Error
+
+
+type alias LoadedModel =
     { code : String
-    , docs : String
+    , currentDoc : String
+    , docList : List String
     }
 
 
@@ -26,18 +35,28 @@ type alias Model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ toHtml [] model.docs
-        , div []
-            [ h2 [] [ text "Playground" ]
-            , textarea [ id "playground" ] [ text model.code ]
-            ]
-        ]
+    case model of
+        Loaded loadedModel ->
+            div []
+                [ toHtml [] <| .currentDoc loadedModel
+                , div []
+                    [ h2 [] [ text "Playground" ]
+                    , div [ id "playground__preview", attribute "data-html" <| .code loadedModel ] []
+                    , textarea [ id "playground", onInput UpdatePreview ] [ text <| .code loadedModel ]
+                    ]
+                , fileList <| .docList loadedModel
+                ]
+
+        Loading ->
+            div [] [ text "loading..." ]
+
+        LoadingError error ->
+            div [] [ text <| Json.errorToString error ]
 
 
-{-| TODO: preview
-<https://github.com/elm/html/issues/172#issuecomment-416975608>
--}
+fileList : List String -> Html Msg
+fileList docs =
+    ul [] <| List.map (\x -> li [ onClick SelectFile ] [ text x ]) docs
 
 
 
@@ -46,18 +65,30 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    readMarkDown ReceivedDataFromJS
+    readFileList LoadFileList
 
 
 type Msg
-    = ReceivedDataFromJS String
+    = SelectFile String
+    | LoadFile String
+    | UpdatePreview String
+    | LoadFileList (List String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ReceivedDataFromJS data ->
-            ( { model | docs = data }, Cmd.none )
+        SelectFile filename ->
+            ( { model |  = filename },  )
+
+        LoadFile data ->
+            ( { model | currentDoc = .loadingDoc model }, Cmd.none )
+
+        UpdatePreview data ->
+            ( { model | code = data }, setPreview data )
+
+        LoadFileList data ->
+            ( { model | docList = data }, Cmd.none )
 
 
 
@@ -66,13 +97,7 @@ update msg model =
 
 init : ( Model, Cmd Msg )
 init =
-    let
-        model =
-            { code = "<div>test</div>"
-            , docs = ""
-            }
-    in
-    ( model, Cmd.none )
+    ( Loading, Cmd.none )
 
 
 
