@@ -7,31 +7,14 @@ import CodeMirrorTheme from 'codemirror/theme/material.css';
 import CodeMirrorMode from 'codemirror/mode/htmlmixed/htmlmixed';
 
 
-const app = Elm.Main.init({
-    node: document.getElementById('root')
-});
+const node = document.getElementById('root');
 
-app.ports.readFile.send(require('./../posts/test.md'));
-
-app.ports.readFileList.send(readFileList);
-
-const readFileList = () => {
-    const fs = require('fs');
-    const result = s.readdirSync('/assets/photos/')
-    console.log(result);
-    return result;
-}
-
-app.ports.setPreview.subscribe(preview => {
-    const node = document.getElementById('playground__preview');
-    node.innerHTML = preview;
-});
-
+const app = Elm.Main.init({ node: node });
 
 
 document.onreadystatechange = () => {
     if (document.readyState === 'interactive') {
-        const $playground = document.getElementById('playground');
+        const $playground = document.getElementById('playground__editor');
         const codeMirror = CodeMirror.fromTextArea(
             $playground,
             {
@@ -41,9 +24,8 @@ document.onreadystatechange = () => {
             }
         );
         codeMirror.on('change', (cm, changes) => {
-            cm.save();
-            const event = new Event('input');
-            $playground.dispatchEvent(event);
+            const node = document.getElementById('playground__preview');
+            node.innerHTML = codeMirror.getValue();
         });
 
 

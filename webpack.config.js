@@ -7,10 +7,19 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-    entry: path.resolve(__dirname, 'src/index.js'),
+    mode: 'development',
+    entry: {
+        index: [
+            'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000',
+            './src/index.js'
+        ]
+    },
     output: {
-        path: path.resolve(__dirname, 'dist'),
-        filename: '[name].js'
+        path: path.resolve(__dirname, 'public'),
+        filename: '[name].js',
+        publicPath: '/',
+        hotUpdateChunkFilename: '.hot/[id].[hash].hot-update.js',
+        hotUpdateMainFilename: '.hot/[hash].hot-update.json'
     },
     module: {
         noParse: /\.elm$/,
@@ -62,14 +71,9 @@ module.exports = {
                 from: 'src/assets/',
                 to: 'assets'
             }
-        ])
+        ]),
+        new webpack.HotModuleReplacementPlugin(),
     ],
-    devServer: {
-        port: 9000,
-        contentBase: path.join(__dirname, 'dist'),
-        stats: { colors: true }
-    },
-    node: {
-        fs: "empty"
-    }
+
+
 };

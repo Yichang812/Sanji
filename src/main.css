@@ -1,4 +1,11 @@
 body {
   font-family: 'Helvetica Neue', sans-serif;
   color: #293c4b;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  background-color: black;
+  color: white;
 }

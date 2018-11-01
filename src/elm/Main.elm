@@ -2,30 +2,34 @@ module Main exposing (Model, Msg(..), init, main, update, view)
 
 -- import CodeMirror exposing (..)
 
+import AppState exposing (AppState(..))
 import Browser
-import Html exposing (Attribute, Html, a, div, h2, li, text, textarea, ul)
-import Html.Attributes exposing (attribute, id)
+import Html exposing (Attribute, Html, a, div, h1, li, text, textarea, ul)
+import Html.Attributes exposing (attribute, class)
 import Html.Events exposing (on, onClick, onInput, stopPropagationOn, targetValue)
-import Json.Decode as Json
+import Http
+import Json.Decode as Decode exposing (Decoder, list, string)
+import Json.Decode.Pipeline exposing (required, resolve)
 import Json.Encode exposing (string)
 import Markdown exposing (toHtml)
-import Port exposing (getFileContent, readFile, readFileList, setPreview)
+import Url.Builder as Builder
 
 
 
 ---- MODEL ----
 
 
-type AppState
-    = Loading
-    | Loaded LoadedModel
-    | LoadingError Json.Error
-
-
-type alias LoadedModel =
+type alias Model =
     { code : String
-    , currentDoc : String
+    , activeDoc : Maybe Doc
     , docList : List String
+    , appState : AppState Http.Error
+    }
+
+
+type alias Doc =
+    { name : String
+    , content : String
     }
 
 
@@ -35,60 +39,97 @@ type alias LoadedModel =
 
 view : Model -> Html Msg
 view model =
-    case model of
-        Loaded loadedModel ->
+    let
+        { appState } =
+            model
+    in
+    case appState of
+        InitLoading ->
+            div [] [ text "init loading" ]
+
+        Loaded maybeError ->
             div []
-                [ toHtml [] <| .currentDoc loadedModel
-                , div []
-                    [ h2 [] [ text "Playground" ]
-                    , div [ id "playground__preview", attribute "data-html" <| .code loadedModel ] []
-                    , textarea [ id "playground", onInput UpdatePreview ] [ text <| .code loadedModel ]
-                    ]
-                , fileList <| .docList loadedModel
+                [ case maybeError of
+                    Just error ->
+                        text <| "Error: " ++ Debug.toString error
+
+                    Nothing ->
+                        text ""
+                , mainView model
                 ]
 
         Loading ->
             div [] [ text "loading..." ]
 
         LoadingError error ->
-            div [] [ text <| Json.errorToString error ]
+            div [] [ text <| Debug.toString error ]
+
+
+mainView : Model -> Html Msg
+mainView model =
+    div []
+        [ navBar
+        , fileList <| .docList model
+        , case .activeDoc model of
+            Just doc ->
+                toHtml [] <| .content doc
+
+            Nothing ->
+                div [] []
+        ]
+
+
+navBar : Html msg
+navBar =
+    div [ class "navbar" ]
+        [ h1 [] [ text "Zalora Styleguide 2.0" ] ]
 
 
 fileList : List String -> Html Msg
 fileList docs =
-    ul [] <| List.map (\x -> li [ onClick SelectFile ] [ text x ]) docs
+    ul [] <| List.map (\x -> li [ onClick (SelectFile x) ] [ text x ]) docs
 
 
 
 ---- UPDATE ----
 
 
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    readFileList LoadFileList
-
-
 type Msg
-    = SelectFile String
-    | LoadFile String
-    | UpdatePreview String
-    | LoadFileList (List String)
+    = InitView (Result Http.Error (List String))
+    | SelectFile String
+    | FileLoaded (Result Http.Error Doc)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        { activeDoc, appState } =
+            model
+    in
     case msg of
+        InitView data ->
+            case data of
+                Ok docList ->
+                    ( { model | docList = docList, appState = AppState.toSuccess appState }, Cmd.none )
+
+                Err error ->
+                    ( { model | appState = AppState.toFailure error appState }, Cmd.none )
+
+        FileLoaded data ->
+            case data of
+                Ok doc ->
+                    ( { model | activeDoc = Just doc, appState = AppState.toSuccess appState }, Cmd.none )
+
+                Err error ->
+                    ( { model | appState = AppState.toFailure error appState }, Cmd.none )
+
         SelectFile filename ->
-            ( { model |  = filename },  )
+            ( { model | appState = AppState.toLoading appState }, loadFile filename )
 
-        LoadFile data ->
-            ( { model | currentDoc = .loadingDoc model }, Cmd.none )
 
-        UpdatePreview data ->
-            ( { model | code = data }, setPreview data )
-
-        LoadFileList data ->
-            ( { model | docList = data }, Cmd.none )
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.none
 
 
 
@@ -97,7 +138,36 @@ update msg model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Loading, Cmd.none )
+    let
+        cmd =
+            Decode.list Decode.string
+                |> Http.get "/docList"
+                |> Http.send InitView
+    in
+    ( { code = ""
+      , activeDoc = Nothing
+      , docList = []
+      , appState = AppState.init
+      }
+    , cmd
+    )
+
+
+loadFile : String -> Cmd Msg
+loadFile filename =
+    let
+        url =
+            Builder.absolute [ "file" ] [ Builder.string "name" filename ]
+
+        docDecoder : Decoder Doc
+        docDecoder =
+            Decode.succeed Doc
+                |> required "name" Decode.string
+                |> required "content" Decode.string
+    in
+    docDecoder
+        |> Http.get url
+        |> Http.send FileLoaded
 
 
 
