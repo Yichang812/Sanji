@@ -4,18 +4,19 @@ module Main exposing (Model, Msg(..), init, main, update, view)
 
 import AppState exposing (AppState(..))
 import Browser
-import Html exposing (Attribute, Html, a, div, h1, li, text, textarea, ul)
-import Html.Attributes exposing (attribute, class)
+import Html exposing (Attribute, Html, a, div, h1, input, li, text, textarea, ul)
+import Html.Attributes exposing (attribute, class, placeholder, type_)
 import Html.Events exposing (on, onClick, onInput, stopPropagationOn, targetValue)
 import Http
 import Json.Decode as Decode exposing (Decoder, list, string)
 import Json.Decode.Pipeline exposing (required, resolve)
 import Json.Encode exposing (string)
-import Markdown exposing (toHtml)
+import Markdown exposing (Options, toHtmlWith)
 import Url.Builder as Builder
 
 
 
+-- import String exposing (String, repl)
 ---- MODEL ----
 
 
@@ -69,13 +70,8 @@ mainView : Model -> Html Msg
 mainView model =
     div []
         [ navBar
-        , fileList <| .docList model
-        , case .activeDoc model of
-            Just doc ->
-                toHtml [] <| .content doc
-
-            Nothing ->
-                div [] []
+        , sideMenu <| .docList model
+        , article <| .activeDoc model
         ]
 
 
@@ -85,9 +81,42 @@ navBar =
         [ h1 [] [ text "Zalora Styleguide 2.0" ] ]
 
 
+sideMenu : List String -> Html Msg
+sideMenu docs =
+    div [ class "sidebar" ]
+        [ div [ class "sidebar__search" ]
+            [ input [ class "sidebar__search--input", type_ "input", placeholder "Type to search" ] [] ]
+        , fileList docs
+        ]
+
+
 fileList : List String -> Html Msg
-fileList docs =
-    ul [] <| List.map (\x -> li [ onClick (SelectFile x) ] [ text x ]) docs
+fileList docnames =
+    let
+        item : String -> Html Msg
+        item name =
+            li [ onClick (SelectFile name), class "sidebar__filename" ] [ text <| String.replace ".md" "" name ]
+    in
+    ul [] <| List.map (\name -> item name) docnames
+
+
+article : Maybe Doc -> Html msg
+article doc =
+    let
+        options : Options
+        options =
+            { githubFlavored = Just { tables = True, breaks = False }
+            , defaultHighlighting = Just "html"
+            , sanitize = True
+            , smartypants = False
+            }
+    in
+    case doc of
+        Just value ->
+            toHtmlWith options [ class "article" ] <| .content value
+
+        Nothing ->
+            div [ class "article" ] [ text "Welcome to our new styleguide!" ]
 
 
 

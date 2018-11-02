@@ -1,5 +1,6 @@
 # Some HTML
 
+``` html
     <html>
         <head>
             <title> test</title>
@@ -7,3 +8,5 @@
         <body>
             <div class="test-class">
         </body>
+    </html>
+```
