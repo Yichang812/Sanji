@@ -5,7 +5,6 @@
   "main": "index.html",
   "scripts": {
     "build": "webpack --mode production",
-    "start-client": "webpack-dev-server --mode development --hot --inline",
     "start": "nodemon index.js --exec babel-node --presets @babel/preset-env"
   },
   "author": "Yichang Li",
