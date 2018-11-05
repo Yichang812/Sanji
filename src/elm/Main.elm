@@ -11,7 +11,9 @@ import Http
 import Json.Decode as Decode exposing (Decoder, list, string)
 import Json.Decode.Pipeline exposing (required, resolve)
 import Json.Encode exposing (string)
-import Markdown exposing (Options, toHtmlWith)
+import Markdown exposing (toHtml)
+import Markdown.Block exposing (Block)
+import Markdown.Config exposing (HtmlOption(..), Options)
 import Url.Builder as Builder
 
 
@@ -105,15 +107,14 @@ article doc =
     let
         options : Options
         options =
-            { githubFlavored = Just { tables = True, breaks = False }
-            , defaultHighlighting = Just "html"
-            , sanitize = True
-            , smartypants = False
+            { softAsHardLineBreak = False
+            , rawHtml = ParseUnsafe
             }
     in
     case doc of
         Just value ->
-            toHtmlWith options [ class "article" ] <| .content value
+            div [ class "article" ] <|
+                Markdown.toHtml (Just options) (.content value)
 
         Nothing ->
             div [ class "article" ] [ text "Welcome to our new styleguide!" ]
