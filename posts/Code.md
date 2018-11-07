@@ -1,14 +1,17 @@
 # Some HTML
 
-``` html
-    <html>
-        <head>
-            <title> test</title>
-        </head>
-        <body>
-            <div class="test-class">
-        </body>
-    </html>
+## test button
+
+Just some random text here for tesing
+
+```html
+<button>test</button>
+
+<button class="btn"> Primary </button>
 ```
 
+## test link
+
+```html
 <a href="#">Link</a>
+```

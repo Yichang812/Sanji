@@ -4,16 +4,17 @@ module Main exposing (Model, Msg(..), init, main, update, view)
 
 import AppState exposing (AppState(..))
 import Browser
-import Html exposing (Attribute, Html, a, div, h1, input, li, text, textarea, ul)
+import Html exposing (Attribute, Html, a, code, div, h1, input, li, pre, text, textarea, ul)
 import Html.Attributes exposing (attribute, class, placeholder, type_)
 import Html.Events exposing (on, onClick, onInput, stopPropagationOn, targetValue)
 import Http
 import Json.Decode as Decode exposing (Decoder, list, string)
 import Json.Decode.Pipeline exposing (required, resolve)
-import Json.Encode exposing (string)
+import Json.Encode as Encode exposing (string)
 import Markdown exposing (toHtml)
-import Markdown.Block exposing (Block)
+import Markdown.Block as Block exposing (Block, CodeBlock, defaultHtml)
 import Markdown.Config exposing (HtmlOption(..), Options)
+import Port exposing (highlight)
 import Url.Builder as Builder
 
 
@@ -110,11 +111,34 @@ article doc =
             { softAsHardLineBreak = False
             , rawHtml = ParseUnsafe
             }
+
+        customHtmlBlock : Block b i -> List (Html msg)
+        customHtmlBlock block =
+            let
+                toHtmlCodeblock str =
+                    "```html\n" ++ str ++ "\n```"
+            in
+            case block of
+                Block.CodeBlock codeblock codestr ->
+                    [ div [ class "example" ]
+                        [ div [ class "example__preview" ] <| Markdown.toHtml (Just options) codestr
+                        , div [ class "example__codeblock" ] <| Markdown.toHtml Nothing (toHtmlCodeblock codestr)
+                        ]
+                    ]
+
+                _ ->
+                    Block.defaultHtml
+                        (Just customHtmlBlock)
+                        Nothing
+                        block
     in
     case doc of
         Just value ->
-            div [ class "article" ] <|
-                Markdown.toHtml (Just options) (.content value)
+            .content value
+                |> Block.parse (Just options)
+                |> List.map customHtmlBlock
+                |> List.concat
+                |> div [ class "article" ]
 
         Nothing ->
             div [ class "article" ] [ text "Welcome to our new styleguide!" ]
@@ -148,7 +172,7 @@ update msg model =
         FileLoaded data ->
             case data of
                 Ok doc ->
-                    ( { model | activeDoc = Just doc, appState = AppState.toSuccess appState }, Cmd.none )
+                    ( { model | activeDoc = Just doc, appState = AppState.toSuccess appState }, highlight "test" )
 
                 Err error ->
                     ( { model | appState = AppState.toFailure error appState }, Cmd.none )
